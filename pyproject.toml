@@ -1,0 +1,6 @@
+[project]
+name = "oncall-investigator"
+version = "0.1.0"
+description = "An AI agent that investigates production alerts and reports the root cause, with a benchmark that measures how often it is right."
+requires-python = ">=3.12"
+dependencies = []
