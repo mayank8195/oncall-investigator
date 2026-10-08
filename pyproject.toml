@@ -6,3 +6,12 @@ requires-python = ">=3.12"
 dependencies = [
     "anthropic>=1.12.1",
 ]
+
+[tool.ruff.lint]
+# Added on top of ruff's default rules
+extend-select = [
+    "E",  # pycodestyle: style errors such as comparing to None with ==
+    "B",  # flake8-bugbear: patterns that are usually bugs
+]
+# Line length is the formatter's job
+ignore = ["E501"]
