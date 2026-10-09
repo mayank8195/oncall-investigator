@@ -15,3 +15,7 @@ extend-select = [
 ]
 # Line length is the formatter's job
 ignore = ["E501"]
+
+[tool.uv.workspace]
+# Each member is a Python project with its own pyproject.toml; all share uv.lock
+members = ["services/gateway"]
