@@ -41,3 +41,12 @@ management:
       exposure:
         # The only actuator endpoints reachable over HTTP
         include: health,prometheus
+  endpoint:
+    health:
+      # Adds /actuator/health/liveness and /actuator/health/readiness
+      probes:
+        enabled: true
+      group:
+        readiness:
+          # Ready means: started, and the database answers
+          include: readinessState,db

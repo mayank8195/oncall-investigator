@@ -1,0 +1,11 @@
+# Kept out of every image built from the repository root.
+# Start by excluding everything, then allow only what the builds copy.
+*
+!pyproject.toml
+!uv.lock
+!.python-version
+!services/
+services/payments/
+**/__pycache__/
+**/.pytest_cache/
+**/tests/
