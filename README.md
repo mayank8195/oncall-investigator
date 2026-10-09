@@ -22,14 +22,14 @@ The work is framed as an engagement with a fictional client, a payments startup 
 | File | What it is |
 |---|---|
 | [`docs/discovery.md`](docs/discovery.md) | The requirements: the problem, constraints, proposed approach, success metrics and risks |
-| [`smoke_test.py`](smoke_test.py) | A setup check: one call to the Claude API that prints the answer, the token counts and the cost |
+| [`scripts/check_LLM_api.py`](scripts/check_LLM_api.py) | A setup check: one call to the Claude API that prints the answer, the token counts and the cost |
 
 ## Check your setup
 
 You need [uv](https://docs.astral.sh/uv/) and an Anthropic API key. Clone the repository, create a file named `.env` in it containing `ANTHROPIC_API_KEY=your-key-here`, then run:
 
 ```
-uv run --env-file .env smoke_test.py
+uv run --env-file .env scripts/check_LLM_api.py
 ```
 
 It prints a one-sentence answer with the token counts and the cost of the call, which is a small fraction of a cent. `.env` is ignored by git.

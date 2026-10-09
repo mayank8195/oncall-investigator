@@ -1,8 +1,8 @@
-"""Smoke test: one call to the Claude API, to prove the key and the library work.
+"""Setup check: one call to the Claude API, to prove the key and the library work.
 
 Prints the answer, the token counts and the cost of the call.
 
-Run with: uv run --env-file .env smoke_test.py
+Run with: uv run --env-file .env scripts/check_LLM_api.py
 """
 
 import anthropic
