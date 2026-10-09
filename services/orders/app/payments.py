@@ -42,6 +42,8 @@ class PaymentsClient:
             raise PaymentsTimeout("payments did not answer in time") from error
         except httpx.TransportError as error:
             raise PaymentsError("payments could not be reached") from error
+        if response.status_code == 504:
+            raise PaymentsTimeout("payments waited too long for the bank")
         if response.status_code >= 400:
             raise PaymentsError(f"payments answered {response.status_code}")
         return response.json()["status"] == "approved"

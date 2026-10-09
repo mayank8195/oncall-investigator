@@ -16,7 +16,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.client.ResourceAccessException;
+
+import com.kinnowpay.payments.bank.BankException;
+import com.kinnowpay.payments.bank.BankTimeoutException;
 
 /** Tests the HTTP layer alone: JSON in, status codes and JSON out. No database, no bank. */
 @WebMvcTest(ChargeController.class)
@@ -61,10 +63,19 @@ class ChargeControllerTest {
     @Test
     void aBankThatDoesNotAnswerBecomes504() throws Exception {
         when(service.charge(any(ChargeRequest.class), any()))
-                .thenThrow(new ResourceAccessException("Read timed out"));
+                .thenThrow(new BankTimeoutException("the bank did not answer in time", null));
 
         mvc.perform(post("/charges").contentType(MediaType.APPLICATION_JSON).content(VALID_BODY))
                 .andExpect(status().isGatewayTimeout());
+    }
+
+    @Test
+    void aBankThatCannotBeReachedBecomes502() throws Exception {
+        when(service.charge(any(ChargeRequest.class), any()))
+                .thenThrow(new BankException("the bank could not be reached", null));
+
+        mvc.perform(post("/charges").contentType(MediaType.APPLICATION_JSON).content(VALID_BODY))
+                .andExpect(status().isBadGateway());
     }
 
     @Test
