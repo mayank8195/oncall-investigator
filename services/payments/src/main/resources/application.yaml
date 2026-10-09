@@ -1,0 +1,43 @@
+# Settings for the payments service.
+# ${NAME:default} means: use the environment variable NAME, or the default if it is not set.
+
+server:
+  port: 8080
+  # Let requests in progress finish before the process exits
+  shutdown: graceful
+
+spring:
+  application:
+    name: payments
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/payments}
+    username: ${DATABASE_USER:payments}
+    password: ${DATABASE_PASSWORD:payments}
+    hikari:
+      # The most database connections held open at once
+      maximum-pool-size: 10
+      # Milliseconds a request waits for a free connection before failing
+      connection-timeout: 3000
+  jpa:
+    hibernate:
+      # Check that the tables match the classes; never change them. Flyway owns the schema.
+      ddl-auto: validate
+    # Do not keep a database connection for the whole web request
+    open-in-view: false
+  jackson:
+    # JSON uses snake_case (order_id), Java uses camelCase (orderId)
+    property-naming-strategy: SNAKE_CASE
+
+bank:
+  # The bank is reached through Toxiproxy, never directly
+  base-url: ${BANK_URL:http://localhost:8666}
+  connect-timeout-ms: 1000
+  # Shorter than the limit orders gives payments, so payments answers first
+  read-timeout-ms: ${BANK_READ_TIMEOUT_MS:3000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # The only actuator endpoints reachable over HTTP
+        include: health,prometheus
