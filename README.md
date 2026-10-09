@@ -2,7 +2,7 @@
 
 An AI agent that investigates production alerts and reports the likely root cause with its evidence, and a benchmark that measures how often the agent is right.
 
-> **Status: early.** The repository is set up and the requirements are written. The system, the agent and the benchmark are not built yet. This page is updated as each part is added.
+> **Status: the system runs; the agent does not exist yet.** The services, database, cache and load generator are built and start with one command. Monitoring, the fault injector, the agent and the benchmark come next. This page is updated as each part is added.
 
 ## The problem
 
@@ -19,22 +19,50 @@ The work is framed as an engagement with a fictional client, a payments startup 
 
 ## What exists today
 
-| File | What it is |
+The system that will be investigated: a small payments backend.
+
+```
+load generator -> gateway -> orders -> payments -> Toxiproxy -> mock-bank
+                               |  \         |
+                             Redis  Postgres-+
+```
+
+| Part | What it is |
 |---|---|
+| [`services/gateway`](services/gateway) | Python, FastAPI. The entry point: checks requests, gives each an ID, calls orders with a time limit |
+| [`services/orders`](services/orders) | Python, FastAPI, SQLAlchemy. Products and orders in Postgres, a Redis cache that falls back to the database |
+| [`services/payments`](services/payments) | Java 21, Spring Boot. Charges an order through the bank, once, however often it is asked |
+| [`services/mock-bank`](services/mock-bank) | Python. A stub for the external bank, reached through Toxiproxy so that it can be made slow or unreachable |
+| [`compose/`](compose) | Docker Compose: the services, Postgres, Redis and Toxiproxy |
+| [`scripts/seed/`](scripts/seed) | Synthetic data: 200 products, a million orders, 200,000 charges |
+| [`loadgen/`](loadgen) | A k6 script that sends steady traffic |
 | [`docs/discovery.md`](docs/discovery.md) | The requirements: the problem, constraints, proposed approach, success metrics and risks |
-| [`scripts/check_LLM_api.py`](scripts/check_LLM_api.py) | A setup check: one call to the Claude API that prints the answer, the token counts and the cost |
 
-## Check your setup
+## Run it
 
-You need [uv](https://docs.astral.sh/uv/) and an Anthropic API key. Clone the repository, create a file named `.env` in it containing `ANTHROPIC_API_KEY=your-key-here`, then run:
+You need Docker (with Compose), [uv](https://docs.astral.sh/uv/) and `make`. Java 21 is needed only to run the payments tests outside Docker.
 
 ```
-uv run --env-file .env scripts/check_LLM_api.py
+make up      # build and start everything, and wait until it is healthy
+make seed    # load the synthetic data (about ten seconds)
+make smoke   # one order, created and paid, through every service
+make load    # two minutes of steady traffic
+make down    # stop
 ```
 
-It prints a one-sentence answer with the token counts and the cost of the call, which is a small fraction of a cent. `.env` is ignored by git.
+`make help` lists every command. The gateway listens on `http://127.0.0.1:8000`, with interactive documentation at `/docs`.
 
-To work on the code, run `pre-commit install` once to set up the commit checks.
+To work on the code:
+
+```
+make install        # install the Python packages
+pre-commit install  # set up the commit checks
+make test           # Python and Java tests
+```
+
+Work goes on a branch and reaches `main` through a pull request; CI runs the linter, the tests and the image builds on each one.
+
+[`scripts/check_LLM_api.py`](scripts/check_LLM_api.py) checks an Anthropic API key by making one call to the Claude API, for a small fraction of a cent. Put `ANTHROPIC_API_KEY=your-key-here` in a file named `.env` (ignored by git) and run `uv run --env-file .env scripts/check_LLM_api.py`.
 
 ## Limitations
 

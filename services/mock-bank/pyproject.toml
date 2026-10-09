@@ -1,16 +1,16 @@
 [project]
-name = "gateway"
+name = "mock-bank"
 version = "0.1.0"
-description = "The entry point: takes requests from outside and passes them to the services behind it."
+description = "A stub standing in for the external bank API."
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.143.0",
-    "httpx>=0.28.1",
     "uvicorn>=0.54.0",
 ]
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28.1",
     "pytest>=9.1.1",
 ]
 
