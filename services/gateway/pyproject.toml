@@ -5,4 +5,5 @@ description = "The entry point: takes requests from outside and passes them to t
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.143.0",
+    "uvicorn>=0.54.0",
 ]
