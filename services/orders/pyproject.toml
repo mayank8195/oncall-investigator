@@ -1,0 +1,24 @@
+[project]
+name = "orders"
+version = "0.1.0"
+description = "Creates and lists orders; caches product data in Redis; asks payments to charge."
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.20.0",
+    "fastapi>=0.143.0",
+    "httpx>=0.28.1",
+    "psycopg[binary]>=3.3.6",
+    "redis>=8.1.0",
+    "sqlalchemy>=2.1.4",
+    "uvicorn>=0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+# Lets the tests import the app package from this folder
+pythonpath = ["."]
+testpaths = ["tests"]
