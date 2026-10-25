@@ -1,0 +1,20 @@
+[project]
+name = "mock-bank"
+version = "0.1.0"
+description = "A stub standing in for the external bank API."
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.143.0",
+    "uvicorn>=0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+# Lets the tests import the app package from this folder
+pythonpath = ["."]
+testpaths = ["tests"]

@@ -1,0 +1,153 @@
+# The whole system on one machine.
+# Use it through the Makefile: `make up`, `make down`, `make seed`, `make load`.
+#
+# Request flow:  gateway -> orders -> payments -> toxiproxy -> mock-bank
+# Passwords here are for local development only.
+
+name: oncall-investigator
+
+services:
+  postgres:
+    image: postgres:17.11-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      # SQL here runs once, when the data volume is first created
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:8.8.3-alpine
+    # A cache only: nothing is written to disk
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  mock-bank:
+    build:
+      context: ..
+      dockerfile: services/mock-bank/Dockerfile
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.12.0
+    command: ["-host=0.0.0.0", "-config=/config/toxiproxy.json"]
+    volumes:
+      - ./toxiproxy.json:/config/toxiproxy.json:ro
+    ports:
+      # Toxiproxy's control API, for adding and removing faults
+      - "127.0.0.1:8474:8474"
+    depends_on:
+      mock-bank:
+        condition: service_healthy
+    restart: unless-stopped
+
+  payments:
+    build:
+      context: ../services/payments
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/payments
+      DATABASE_USER: payments
+      DATABASE_PASSWORD: payments
+      # The bank is always reached through Toxiproxy
+      BANK_URL: http://toxiproxy:8666
+    mem_limit: 768m
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health/readiness"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      toxiproxy:
+        condition: service_started
+    restart: unless-stopped
+
+  # Runs once and exits: brings the orders database schema up to date
+  orders-migrate:
+    build:
+      context: ..
+      dockerfile: services/orders/Dockerfile
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://orders:orders@postgres:5432/orders
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  orders:
+    build:
+      context: ..
+      dockerfile: services/orders/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://orders:orders@postgres:5432/orders
+      REDIS_URL: redis://redis:6379/0
+      PAYMENTS_URL: http://payments:8080
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/ready', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    depends_on:
+      orders-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+      payments:
+        condition: service_healthy
+    restart: unless-stopped
+
+  gateway:
+    build:
+      context: ..
+      dockerfile: services/gateway/Dockerfile
+    environment:
+      ORDERS_URL: http://orders:8001
+    ports:
+      # The only service reachable from the Mac, and only from the Mac itself
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    depends_on:
+      orders:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Started only by `make load`
+  loadgen:
+    image: grafana/k6:2.3.0
+    profiles: ["load"]
+    command: ["run", "/scripts/steady.js"]
+    environment:
+      BASE_URL: http://gateway:8000
+      RATE: ${RATE:-10}
+      DURATION: ${DURATION:-2m}
+    volumes:
+      - ../loadgen:/scripts:ro
+    depends_on:
+      gateway:
+        condition: service_healthy
+
+volumes:
+  postgres-data:

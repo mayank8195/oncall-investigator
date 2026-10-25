@@ -15,6 +15,9 @@ repos:
       - id: check-toml
       - id: check-merge-conflict
       - id: check-added-large-files
+      # Work goes on a branch and reaches main through a pull request
+      - id: no-commit-to-branch
+        args: [--branch, main]
 
   # Python: lint, then format
   - repo: https://github.com/astral-sh/ruff-pre-commit
@@ -23,3 +26,13 @@ repos:
       - id: ruff-check
         args: [--fix]
       - id: ruff-format
+
+  # Python unit tests: fast, and need nothing running
+  - repo: local
+    hooks:
+      - id: pytest
+        name: python tests
+        entry: make test-python
+        language: system
+        files: ^services/.*\.py$
+        pass_filenames: false

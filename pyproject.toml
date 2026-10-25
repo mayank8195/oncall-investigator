@@ -7,6 +7,10 @@ dependencies = [
     "anthropic>=1.12.1",
 ]
 
+[tool.ruff]
+# Where each service's own code lives, so imports of `app` are sorted as ours
+src = ["services/*"]
+
 [tool.ruff.lint]
 # Added on top of ruff's default rules
 extend-select = [
@@ -18,4 +22,8 @@ ignore = ["E501"]
 
 [tool.uv.workspace]
 # Each member is a Python project with its own pyproject.toml; all share uv.lock
-members = ["services/gateway"]
+members = [
+    "services/gateway",
+    "services/orders",
+    "services/mock-bank",
+]

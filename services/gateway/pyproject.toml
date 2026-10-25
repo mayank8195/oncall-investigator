@@ -5,5 +5,16 @@ description = "The entry point: takes requests from outside and passes them to t
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.143.0",
+    "httpx>=0.28.1",
     "uvicorn>=0.54.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+# Lets the tests import the app package from this folder
+pythonpath = ["."]
+testpaths = ["tests"]
